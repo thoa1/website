@@ -7,10 +7,18 @@ export default function makeContacts() { return okResult(new Contacts()); }
 /** holds the contacts for different users */
 class Contacts {
   //TODO: add instance fields if necessary
+  #contacts = new Map();;
+  
   
   /** return an instance of UserContacts */
   userContacts(userId) {
     //TODO: fix to ensure same object returned for same userId
+    let contacts = this.#contacts.get(userID);
+    //check to have unqiue userID 
+    if (!contacts) {
+    	contacts = new UserContacts(userId);
+    	this.#contacts.set(userId, contacts);
+    }
     return okResult(new UserContacts(userId));
   }
   
@@ -19,6 +27,10 @@ class Contacts {
 /** holds the contacts for single user specified by userId */
 class UserContacts {
   //TODO: add instance fields if necessary
+  #contacts = new Map();
+  #emailsIN = new Index();
+  #nameIn = new Index();
+  
 
   constructor(userId) {
     this.userId = userId;
@@ -36,7 +48,12 @@ class UserContacts {
    *             an entry which does not match /^.+?\@.+?\..+$/.
    *             Contact contains an id property
    */
+   
   create(contact) {
+  	if(contact.id == ''){
+  		return errResult('id already in contacts', {code : 'BAD_REQ'});
+  	}
+  	
     return okResult('TODO');
   }
 
@@ -90,5 +107,13 @@ function setUnion(setA, setB) {
   const result = new Set(setA);
   for (const el of setB) result.add(el);
   return result;
+}
+
+function merge(dest, src){
+	for (const [k, val] of Objects.entries(src)) {
+		const key = src	
+  }
+  
+	
 }
 
