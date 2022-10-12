@@ -167,7 +167,11 @@ class ContactsDao {
   async read({userId, id}) {
     //TODO any setup code
     try {
-      return errResult('TODO', { code: 'TODO' });
+    	const collection = this.contacts;
+    	const dbEn = await collection.find({"userId": userId, "contactId": id});
+    	
+    	
+      return okResult({id, ...dbEn});
     }
     catch (error) {
       console.error(error);
