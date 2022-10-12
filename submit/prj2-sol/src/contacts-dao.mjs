@@ -84,8 +84,13 @@ class ContactsDao {
   async clearAll() {
     //TODO any setup code
     try {
+    	const c = this.users;
+    	const cs = await(users.find({}).toArray());
+    	for(const k of cs){
+    		this.clear(k._id);
+    	}
       await this.contacts.deleteMany({});
-      return ok();
+      return okResult(cs.length);
     }
     catch (error) {
       console.error(error);
@@ -100,9 +105,10 @@ class ContactsDao {
   async clear({userId}) {
     //TODO any setup code
     try {
-    	await this.userId.deleteMany({});
+    	const c = this.contacts;
+    	const delete_info = await collection.deleteMany({userId: {userId}});
+    	return okResult(delete_info.result.n);
     	
-      return ok();
     }
     catch (error) {
       console.error(error);
@@ -124,10 +130,18 @@ class ContactsDao {
   async create(contact) {
     //TODO any setup code
     try {
-    	const nextId = await this.getNextId();
-    	const ret = await this.db.collection('contacts').insertOne({'id': nextId, ...contact, balance:0});
-    	
-      return nextId;
+    	if (contact._id){
+    		return errResult("new contact can not have id", {code: "BAD_REQ"});
+    	}
+    	const cID = await this.#nextId();
+    	const dbObject = {_id: cID, ...contact};
+    	const ArrPre = namePrefixes(contact.name);
+    	if(ArrPre){
+    		const collection = this.contacts;
+    		await db.contacts.insertOne(dbObject);
+    		
+    	}
+      return okResult(cID);
     }
     catch (error) {
       console.error(error);
@@ -179,7 +193,7 @@ class ContactsDao {
     }
   }
   
-  async #makeIn(){
+	async #makeIn(){
   	const collection = await(db.listCollections().toArray());
   	const exists = !!collections.find(c => c.name === property);
   	
