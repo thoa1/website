@@ -127,6 +127,15 @@ class ContactsDao {
    *    BAD_REQ: contact contains an _id property
    *    DB: a database error occurred   
    */
+  async #nextId(){
+ 		const query = {_id: NEXT_ID_KEY};
+ 		const update = {$inc: {[NEXT_ID_KEY]: 1}};
+ 		const choices = { upsert: true, returnDocument: 'after'};
+ 		const ret = await this.contacts.findOneAndUpdate(query, update, choices);
+ 		const seq = ret.value[next_id];
+ 		return String(seq) + Math.random().toFixed(10).replace(/^0\./, '_');
+ 	}
+ 	
   async create(contact) {
     //TODO any setup code
     try {
@@ -210,7 +219,7 @@ class ContactsDao {
   }
 
   
- 
+ 	
   
 }
 
