@@ -24,7 +24,7 @@ describe('Contacts', () => {
     }
   });
 
-  it ('must retrieve previously created contacts', () => {
+  it.only ('must retrieve previously created contacts', () => {
     const contacts = [];
     for (const id of ids) {
       const contactResult = userContacts.read(id);
@@ -36,7 +36,7 @@ describe('Contacts', () => {
     expect(contacts).to.deep.equal(CONTACTS);
   });
 
-  it ('retrieving a contact with a non-existing id must error NOT_FOUND', () => {
+  it.only ('retrieving a contact with a non-existing id must error NOT_FOUND', () => {
     const contacts = [];
     const id = ids[0] + 'x';
     const contactResult = userContacts.read(id);
@@ -44,13 +44,13 @@ describe('Contacts', () => {
     expect(contactResult.errors[0].options.code).to.equal('NOT_FOUND');
   });
 
-  it ('retrieving a contact with an undefined id must error BAD_REQ', () => {
+  it.only ('retrieving a contact with an undefined id must error BAD_REQ', () => {
     const contactResult = userContacts.read();
     expect(contactResult.errors).to.not.be.undefined;
     expect(contactResult.errors[0].options.code).to.equal('BAD_REQ');
   });
 
-  it ('creating a contact with an id must error BAD_REQ', () => {
+  it.only ('creating a contact with an id must error BAD_REQ', () => {
     const contact = CONTACTS[0];
     const create = { id: 'xxx', ...contact };
     const contactResult = userContacts.create(create);
@@ -58,7 +58,7 @@ describe('Contacts', () => {
     expect(contactResult.errors[0].options.code).to.equal('BAD_REQ');
   });
 
-  it ('contacts search without any options must retrieve all CONTACTS', () => {
+  it.only ('contacts search without any options must retrieve all CONTACTS', () => {
     const contactsResult = userContacts.search();
     expect(contactsResult.errors).to.be.undefined;
     const contacts = contactsResult.val
@@ -66,7 +66,7 @@ describe('Contacts', () => {
     expect(contacts).to.deep.equal(CONTACTS);
   });
 
-  it ('contacts search must start search at index', () => {
+  it.only ('contacts search must start search at index', () => {
     const index = 3;
     const contactsResult = userContacts.search({}, index);
     expect(contactsResult.errors).to.be.undefined;
@@ -75,7 +75,7 @@ describe('Contacts', () => {
     expect(contacts).to.deep.equal(CONTACTS.slice(index));
   });
 
-  it ('contacts search must return count results starting at index', () => {
+  it.only ('contacts search must return count results starting at index', () => {
     const index = 2;
     const count = 2;
     const contactsResult = userContacts.search({}, index, count);
@@ -85,7 +85,7 @@ describe('Contacts', () => {
     expect(contacts).to.deep.equal(CONTACTS.slice(index, index + count));
   });
 
-  it ('contacts search must search by first name word prefix', () => {
+  it.only ('contacts search must search by first name word prefix', () => {
     const nameWordPrefix = 'que';
     const contactsResult = userContacts.search({nameWordPrefix});
     expect(contactsResult.errors).to.be.undefined;
@@ -94,7 +94,7 @@ describe('Contacts', () => {
     expect(contacts).to.deep.equal(CONTACTS.slice(1, 2));
   });
 
-  it ('contacts search must search by last name word prefix', () => {
+  it.only ('contacts search must search by last name word prefix', () => {
     const nameWordPrefix = 'go';
     const contactsResult = userContacts.search({nameWordPrefix});
     expect(contactsResult.errors).to.be.undefined;
@@ -103,7 +103,7 @@ describe('Contacts', () => {
     expect(contacts).to.deep.equal(CONTACTS.slice(1, 2));
   });
   
-  it ('contacts search must retrieve multiple results', () => {
+  it.only ('contacts search must retrieve multiple results', () => {
     const nameWordPrefix = 'john';
     const contactsResult = userContacts.search({nameWordPrefix});
     expect(contactsResult.errors).to.be.undefined;
@@ -114,7 +114,7 @@ describe('Contacts', () => {
       .to.deep.equal([CONTACTS[0], CONTACTS[2]].sort(cmp));
   });
 
-  it ('contacts search must search by email', () => {
+  it.only ('contacts search must search by email', () => {
     const email = 'qgordon37@gmail.com';
     const contactsResult = userContacts.search({email});
     expect(contactsResult.errors).to.be.undefined;
@@ -123,7 +123,7 @@ describe('Contacts', () => {
     expect(contacts).to.deep.equal(CONTACTS.slice(1, 2));
   });
     
-  it ('contacts search must search by id', () => {
+  it.only ('contacts search must search by id', () => {
     const id = ids[3];
     const contactsResult = userContacts.search({id});
     expect(contactsResult.errors).to.be.undefined;
@@ -132,7 +132,7 @@ describe('Contacts', () => {
     expect(contacts).to.deep.equal(CONTACTS.slice(3, 4));
   });
     
-  it ('contacts case insensitive search by email and name word prefix', () => {
+  it.only ('contacts case insensitive search by email and name word prefix', () => {
     const nameWordPrefix = 'QUE';
     const email = 'QGORDON37@GMAIL.COM';
     const contactsResult = userContacts.search({email, nameWordPrefix});
@@ -142,7 +142,7 @@ describe('Contacts', () => {
     expect(contacts).to.deep.equal(CONTACTS.slice(1, 2));
   });
   
-  it ('contacts search with incorrect name prefix must return empty', () => {
+  it.only ('contacts search with incorrect name prefix must return empty', () => {
     const nameWordPrefix = 'QUEN';
     const contactsResult = userContacts.search({nameWordPrefix});
     expect(contactsResult.errors).to.be.undefined;
@@ -150,7 +150,7 @@ describe('Contacts', () => {
     expect(contacts).to.have.lengthOf(0);
   });
 
-  it ('retrieved contact must not share structure with stored contact', () => {
+  it.only ('retrieved contact must not share structure with stored contact', () => {
     const index = 0;
     const id = ids[index];
     const contactResult = userContacts.read(id);
