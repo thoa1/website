@@ -144,7 +144,6 @@ class ContactsDao {
    *    BAD_REQ: contact contains an _id property
    *    DB: a database error occurred   
    */
-	const NEXT_ID_KEY = 'count';
 	
 	async #nextId(){
 		const query = {_id: NEXT_ID_KEY};
@@ -257,4 +256,6 @@ class ContactsDao {
   
 }
 
+
 //TODO: add auxiliary functions and definitions as needed
+const NEXT_ID_KEY = 'count';
