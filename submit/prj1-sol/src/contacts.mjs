@@ -7,36 +7,44 @@ export default function makeContacts() { return okResult(new Contacts()); }
 /** holds the contacts for different users */
 class Contacts {
   //TODO: add instance fields if necessary
-  #contacts = new Map();
-  
-  
   /** return an instance of UserContacts */
+  
+  #contactsMap = new Map();  
+  
   userContacts(userId) {
     //TODO: fix to ensure same object returned for same userId
-    let contacts = this.#contacts.get(userID);
-    //check to have unqiue userID 
-    if (!contacts) {
-    	contacts = new UserContacts(userId);
-    	this.#contacts.set(userId, contacts);
+    if(this.#contactsMap.has(userId)){
+      return okResult(this.#contactsMap.get(userId));
     }
-    return okResult(new UserContacts(userId));
+    else{
+      const temp_user = new UserContacts(userId);
+      this.#contactsMap.set(userId, temp_user);
+      return okResult(this.#contactsMap.get(userId));
+    }
   }
-  
 }
 
 /** holds the contacts for single user specified by userId */
 class UserContacts {
   //TODO: add instance fields if necessary
-  #contacts = new Map();
-  #emailsIn = new Index();
-  #nameIn = new Index();
-  
+
+  #counter;
+  #contactMap;
+  #indexMap;
 
   constructor(userId) {
     this.userId = userId;
+    this.#counter = 0;
+    this.#contactMap = new Map();
+    this.#indexMap = new Index();
   }
   
-  
+  generateId(){
+    let random = Math.floor(Math.random()*100);
+    let new_id = `${this.#counter}_${random}`;
+    this.#counter += 1;
+    return new_id;
+  }
 
   /** Add object contact into this under a new contactId and return
    *  Result<contactId>.  The contact must have a name field which
@@ -49,17 +57,27 @@ class UserContacts {
    *             an entry which does not match /^.+?\@.+?\..+$/.
    *             Contact contains an id property
    */
-   
   create(contact) {
-  	if(contact.id === ''){
-  		return errResult('id already in contacts', {code : 'BAD_REQ'});}
-  	const id = this.#Id();
-  	const emailsCheck = checker(contact.emails ?? '');
-  	if(emailsResult.errors) return emailsResult;
-  	this.emailsIN.add(emailsCheck.val, id);
-  	
-  	
-    return okResult(id);
+    let prefixes = this.prefix(contact.name);
+    
+    //ERROR CHECKING
+    if(prefixes === []){
+      return errResult("Name is not proper string", {code: 'BAD_REQ'});
+    }
+    if(contact.id){
+      return errResult("Contact cannot have ID already", {code: 'BAD_REQ'});
+    }
+
+    //Add prefixes to index;
+    let new_id = this.generateId();
+
+    if(contact.emails){
+      this.#indexMap.addEmail(contact.emails, new_id);
+    }
+    this.#indexMap.addPrefixes(prefixes, new_id);
+
+    this.#contactMap.set(new_id, contact);
+    return okResult(new_id);
   }
 
   /** Return XContact for contactId.
@@ -70,70 +88,22 @@ class UserContacts {
    *    NOT_FOUND: no contact for contactId
    */
   read(contactId) {
-  	
-    if(typeof contactID !== 'string') {
-    	return errResult('contactId not provided as a string', {code: 'BAD_REQ'});
+    if(this.#contactMap.has(contactId)){
+      const ret = this.deepCopy(this.#contactMap.get(contactId));
+      return okResult(ret);
     }
-    const info = this.#contact.get(contactID);
-    if(!info){
-    	return errResult('no contact for contactID', {code: 'NOT_FOUND'});
+    else if(typeof contactId !== 'string'){
+      return errResult('contactId is not a string', {code: "BAD_REQ"});
     }
-    else{ return okResult(deepCopy(info));
+    else{
+      return errResult('contactId not found', {code: 'NOT_FOUND'});
+    }
   }
-}
-
-	update(id, updates) {
-    const info = this.#contacts[id];
-    if (updates.id) {
-      return errResult(`cannot update contact ID`, { code: 'BAD_REQ' });
-    }
-    else if (!info) {
-      return errResult(`no contact for ${id}`, { code: 'NOT_FOUND' });
-    }
-    else {
-      let [nPrefixes, emails] = [[], []];
-      if (updates.name) {
-				const result = nPrefixes(updates.name ?? '');
-				if (result.errors) return result;
-				nPrefixes = result.val;
-						}
-						if (updates.emails) {
-				const eResult = checker(info.emails ?? []);
-				if (eResult.errors) return eResult;
-						}
-						if (nPrefixes.length > 0) {	
-				const pResult = nPrefixes(info.name);
-				console.assert(!pResult.errors);
-				this.#namesIn.remove(pResult.val, id);
-						}
-						if (updates.email) {
-				this.#emailsIn.remove(info.emails ?? []);
-						}
-						this.#namesIn.add(nPrefixes, id);
-						this.#emailsIn.add(emails, id);
-						deepMerge(info, updates);
-						return okResult(deepMerge({}, info));
-		}
-    
-  }
-  
-  remove(contactId, updates) {
-    const info = this.#contacts[contactId];
-    
-    const pResult = nPrefixes(info.name);
-    console.assert(!pResult.errors);
-    this.#namesIn.remove(pResult.val, id);
-    this.#emailsIn.remove(info.emails ?? []);
-    this.#contacts.delete(contactId);
-    return okResult(null);
-   }
- }
-  
 
   /** search for contact by zero or more of the following fields in params:
    *    id:     the contact ID.
-   *    nameWordPrefix: a string, the letters of which must match 
-   *            the prefix of a word in the contacts name field
+   *    name:   a string, the letters of which must match the prefix of a
+   *            word in the contacts name field
    *    email:  an Email address
    *  If no params are specified, then all contacts are returned
    *  
@@ -146,62 +116,110 @@ class UserContacts {
    *             a valid Email address
    */
   search({id, nameWordPrefix, email}={}, startIndex=0, count=5) {
-  	let ids;
-  	ids = ids ?  [ ...ids] : [ ... this.#contacts.keys()];
-    ids = ids.sort().slice(startIndex, startIndex + count);
-    return okResult(ids.map(id => deepCopy(this.#contacts.get(id))));
-    
+    let deep_arr = [];
+    if(nameWordPrefix && this.prefix() === []){
+      return errResult("Name is not proper string", {code: 'BAD_REQ'});
+    }
+    if(!id && !nameWordPrefix && !email){
+      deep_arr = Array.from(this.#contactMap.values());
+      deep_arr.map(c => c = this.deepCopy(c));
+    }
+
+    if(nameWordPrefix){
+      let fixedPrefix = nameWordPrefix.toLowerCase();
+      fixedPrefix = fixedPrefix.charAt(0).toUpperCase() + fixedPrefix.slice(1);
+      if(this.#indexMap.indexHas(fixedPrefix)){
+        const temp_set = this.#indexMap.indexGet(fixedPrefix);
+        for(const id of temp_set){
+          deep_arr.push(this.#contactMap.get(id));
+        }
+      }
+    }
+
+    if(email){
+      let fixedEmail = email.toLowerCase();
+      if(this.#indexMap.indexHas(email)){
+        const temp_set = this.#indexMap.indexGet(email);
+        for(const id of temp_set){
+          deep_arr.push(this.#contactMap.get(id));
+        }
+      }
+    }
+
+    if(id){
+      deep_arr.push(this.#contactMap.get(id));
+    }
+
+    deep_arr = deep_arr.slice(startIndex, startIndex+count);
+    deep_arr.map(c => c = this.deepCopy(c));
+    return okResult(deep_arr);
   }
 
   //TODO: define auxiliary methods
-class Index{
-	#index = new Map();
-	add(keys, val) {
-			for (const key of keys) {
-			const k = key.toLowerCase();
-			const set = this.#index.get(k);
-			if (set) set.delete(val);
-			if (set.size === 0) this.#index.delete(k);
-		}
-	}
-	remove(keys, val) {
-		for (const k of keys) {
-			const key = k.toLowerCase();
-			const set = this.#index.get(k);
-			if (set) set.delete(val);
-		}
-	}
-	
-	get(key){
-		return this.#index.get(key.toLowerCase()) ?? new Set();
-		}
-	}
-	
-	
-}
+  //Deep copy strategy taken from url:
+  //https://code.tutsplus.com/articles/the-best-way-to-deep-copy-an-object-in-javascript--cms-39655
 
+  deepCopy(my_object){
+    const copy = {...my_object};
+    return copy;
+  }
+  
+  prefix(my_string){
+    if(my_string === undefined){
+      return "";
+    }
+    let prefixes = new Array();
+    let sub_strings = my_string.split(" ");
+
+    sub_strings.map(s => s.replace(/[^A-Za-z0-9]/g, ''));
+
+    for(const sub of sub_strings){
+      for(let i = 2; i < sub.length+1; i++){
+        prefixes.push(sub.substring(0, i));
+      }
+    }
+    return prefixes;
+  }
+}
 
 
 //TODO: define auxiliary functions and classes.
-function wPrefixes(w) {
-	const wordCheck = w.toLowerCase().replace(/[^a-z]/g, '');
-	return Array.from({length: wordCheck.length -1})
-		.map((_,i) => wordCheck.slice(0, i+2);
-}
 
-function nPrefixes(name){
-	const pre = name.split(/\s+/)
-				.reduce((acc,w) => acc.concat(wPrefixes(w)), []);
-	return pre;
-		
-}
+class Index{
+  constructor(){
+    this.indexMap = new Map();
+  }
 
-function checker(emails){
-	const emailFail = emails.find(email => !email.toString().trim().match(/^.+?\@.+?\..+$/));
-	return (emailFail);
-		? errResult('invalid', { code: 'BAD_REQ'})
-		: okResult(emails);
-	
+  addPrefixes(prefixes, new_id){
+    for(const pre of prefixes){
+      if(this.indexMap.has(pre)){
+        this.indexMap.get(pre).add(new_id);
+      }
+      else{
+        const my_set = new Set();
+        my_set.add(new_id);
+        this.indexMap.set(pre, my_set);
+      }
+    }
+  }
+  addEmail(new_emails, new_id){
+    for(const e of new_emails){
+      if(this.indexMap.has(e)){
+        this.indexMap.get(e).add(new_id);
+      }
+      else{
+        const my_set = new Set();
+        my_set.add(new_id);
+        this.indexMap.set(e, my_set);
+      }
+    }
+  }
+  indexHas(my_str){
+    return this.indexMap.has(my_str);
+  }
+  indexGet(my_str){
+    return this.indexMap.get(my_str);
+  }
 }
 
 // non-destructive implementations of set operations which may be useful
@@ -218,28 +236,4 @@ function setUnion(setA, setB) {
   for (const el of setB) result.add(el);
   return result;
 }
-// this merge function is from https://stackoverflow.com/questions/27936772/how-to-deep-merge-instead-of-shallow-merge
-function isObject(item) {
-	return (item && typeof item === 'object' && !Array.isArray(item));
-}
-
-function mergeDeep(target, ...source){
-	if(!source.length) return target;
-	const source = source.shift();
-	
-	if isObject(target) && isObject(source)) {
-	for (const key in source) {
-		if(isObject(source[key])){
-			if(!target[key] Object.assign(target, {[key]: {} });
-			mergeDeep(target[key], source[key]);
-		} else{
-			Object.assign(target, { [key]: source[key] });
-		}
-  }
- }
- return mergeDeep(target, ...sources);
-}
-
-function copyDeep(sources) { return deepMerge({}, sources); }
-
 
